@@ -50,7 +50,7 @@ pip install --editable .
 
 ```bash
 mkdir datasets && cd datasets
-huggingface-cli download --repo-type dataset --resume-download Brookseeworld/Scropio-dataset --local-dir datasets/
+huggingface-cli download --repo-type dataset --resume-download Brookseeworld/Scropio-dataset --local-dir .
 ```
 
 ### Models
