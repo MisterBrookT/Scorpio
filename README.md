@@ -49,14 +49,14 @@ pip install --editable .
 ### Datasets
 
 ```bash
-cd datasets
+mkdir datasets && cd datasets
 huggingface-cli download --repo-type dataset --resume-download Brookseeworld/Scropio-dataset --local-dir datasets/
 ```
 
 ### Models
 
 ```bash
-cd predictor/seq_predictor/MODELS
+mkdir MODELS && cd MODELS
 huggingface-cli download --resume-download Brookseeworld/Scropio-seq-len-predictor --local-dir .
 ```
 
