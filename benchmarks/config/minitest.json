@@ -35,7 +35,7 @@
           "simple_result": ""
         },
         "share": {
-          "model": "/root/autodl-pub/models/llama3.1-8b"
+          "model": "meta-llama/Llama-3.1-8B"
         }
       }
     }

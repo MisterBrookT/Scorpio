@@ -57,7 +57,7 @@ huggingface-cli download --repo-type dataset --resume-download Brookseeworld/Scr
 
 ```bash
 cd predictor/seq_predictor/MODELS
-huggingface-cli download --resume-download <anonymized_model> --local-dir .
+huggingface-cli download --resume-download Brookseeworld/Scropio-seq-len-predictor --local-dir .
 ```
 
 ---
