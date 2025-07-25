@@ -90,7 +90,7 @@ SCORPIO achieves:
 - **46.5% better SLO adherence**
 - Near-zero runtime overhead (<0.2%)
 
-See full benchmark results in the [paper](https://arxiv.org/abs/xxxx.xxxxx).
+See full benchmark results in the [paper](https://arxiv.org/pdf/2505.23022).
 
 ---
 
@@ -99,10 +99,10 @@ See full benchmark results in the [paper](https://arxiv.org/abs/xxxx.xxxxx).
 If you use SCORPIO, please cite us:
 
 ```bibtex
-@inproceedings{scorpio2025,
+@article{tang2025scorpio,
   title={SCORPIO: Serving the Right Requests at the Right Time for Heterogeneous SLOs in LLM Inference},
-  author={Anonymous},
-  booktitle={NeurIPS},
+  author={Tang, Yinghao and Lan, Tingfeng and Huang, Xiuqi and Lu, Hui and Chen, Wei},
+  journal={arXiv preprint arXiv:2505.23022},
   year={2025}
 }
 ```
