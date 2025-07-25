@@ -1,0 +1,30 @@
+[
+    {
+        "test_name": "throughput_oracle",
+        "max_num_seqs_list": [256],
+        "parameters": {
+            "model": "/root/autodl-pub/models/opt-125",
+            "tensor_parallel_size": 1,
+            "load_format": "dummy",
+            "num_prompts": 256,
+            "gpu_memory_utilization": 0.5,
+            "input_len": 1024,
+            "output_len": 80,
+            "ada_place": true
+        }
+    },
+    {
+        "test_name": "throughput_vllm",
+        "max_num_seqs_list": [256],
+        "parameters": {
+            "model": "/root/autodl-pub/models/opt-125",
+            "tensor_parallel_size": 1,
+            "load_format": "dummy",
+            "num_prompts": 256,
+            "gpu_memory_utilization": 0.5,
+            "input_len": 1024,
+            "output_len": 80,
+            "ada_place": false
+        }
+    }
+]
