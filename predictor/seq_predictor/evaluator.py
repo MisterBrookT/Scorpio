@@ -22,8 +22,6 @@ def parse_args():
     parser.add_argument("--file", type=str, required=True,
                         help="Path to the test data file")
     parser.add_argument("--batch-size", type=int, default=128)
-    parser.add_argument("--output-dir", type=str, default="evaluation_results",
-                        help="Directory to save evaluation results")
     parser.add_argument("--tokenizer", type=str, default="meta-llama/Llama-3.1-8B")
     parser.add_argument("--label-max-length", type=int, default=8192, 
                                 help="Maximum token length to consider (context length for Llama-3)")
@@ -294,9 +292,17 @@ def main():
     bin_mse = np.mean((np.array(true_labels) - np.array(predictions))**2)
     print("Bin MSE: ", bin_mse)
     
+    # Bin RMSE
+    bin_rmse = np.sqrt(bin_mse)
+    print("Bin RMSE: ", bin_rmse)
+    
     # Length MSE
     length_mse = np.mean((np.array(real_lens) - np.array(prediction_lens))**2)
     print("Length MSE: ", length_mse)
+    
+    # Length RMSE
+    length_rmse = np.sqrt(length_mse)
+    print("Length RMSE: ", length_rmse)
 
 if __name__ == "__main__":
     main()

@@ -80,3 +80,11 @@ benchmarks/config/*/
 draw/
 predictor/analytic_model/config/
 
+
+# pictures
+*.png
+
+# result / dataset / config
+*.jsonl
+*.csv
+*.json

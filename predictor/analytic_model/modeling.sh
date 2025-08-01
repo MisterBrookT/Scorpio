@@ -22,11 +22,21 @@
 
 
 # Run prefill modeling for Gemma 27B LMSYS
-python predictor/analytic_model/modeling_prefill.py \
-    --model_name "gemma27b-lmsys-prefill" \
-    --data_path "predictor/analytic_model/profiled_result/gemma27b-lmsys-prefill.jsonl"
+# python predictor/analytic_model/modeling_prefill.py \
+#     --model_name "gemma27b-lmsys-prefill" \
+#     --data_path "predictor/analytic_model/profiled_result/gemma27b-lmsys-prefill.jsonl"
 
-# Run decode modeling for Gemma 27B LMSYS
+# # Run decode modeling for Gemma 27B LMSYS
+# python predictor/analytic_model/modeling_decode.py \
+#     --model_name "gemma27b-lmsys-decode" \
+#     --data_path "predictor/analytic_model/profiled_result/gemma27b-lmsys-decode.jsonl"
+
+# Run prefill modeling for Llama 8B 
+python predictor/analytic_model/modeling_prefill.py \
+    --model_name "llama8b-arxiv-prefill" \
+    --data_path "predictor/analytic_model/profiled_result/llama8b-arxiv-prefill.jsonl" \
+
+# Run decode modeling for Llama 8B 
 python predictor/analytic_model/modeling_decode.py \
-    --model_name "gemma27b-lmsys-decode" \
-    --data_path "predictor/analytic_model/profiled_result/gemma27b-lmsys-decode.jsonl"
+    --model_name "llama8b-arxiv-decode" \
+    --data_path "predictor/analytic_model/profiled_result/llama8b-arxiv-decode.jsonl"

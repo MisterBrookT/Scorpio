@@ -1510,7 +1510,7 @@ class Scheduler:
             if len(running_scheduled.preempted) + len(
                     running_scheduled.swapped_out) == 0:
                 swapped_in = self._schedule_swapped(budget, curr_loras)
-        # Yinghao: the assert here maybe unuseful.
+        # bubu: the assert here maybe unuseful.
         assert (budget.num_batched_tokens <=
                 self.scheduler_config.max_num_batched_tokens)
         assert budget.num_curr_seqs <= self.scheduler_config.max_num_seqs

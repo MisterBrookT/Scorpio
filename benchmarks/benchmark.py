@@ -821,7 +821,6 @@ def main(args: argparse.Namespace):
     else:
         predictor_api_url = None
     
-    # Yinghao(what does this trust_remote_code do?)
     tokenizer = get_tokenizer(tokenizer_id,
                               tokenizer_mode=tokenizer_mode,
                               trust_remote_code=args.trust_remote_code) 

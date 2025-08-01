@@ -650,7 +650,7 @@ class LLMEngine:
                 "Either SamplingParams or PoolingParams must be provided.")
         
         # Add the sequence group to the scheduler with least unfinished seqs.
-        # TODO (yinghao: this load balance just split the seqs to different exectutor evenly.
+        # TODO (bubu: this load balance just split the seqs to different exectutor evenly.
         # maybe need further optimization.
         costs = [
             scheduler.get_num_unfinished_seq_groups()

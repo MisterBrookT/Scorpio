@@ -214,7 +214,6 @@ class EngineArgs:
             self.enable_prefix_caching = bool(envs.VLLM_USE_V1)
 
         # Override max_num_seqs if it's not set by user.
-        # NOTE(yinghao): default value of max_num_seqs is 256
         if self.max_num_seqs is None:
             self.max_num_seqs = 256 if not envs.VLLM_USE_V1 else 1024
 

@@ -1,42 +1,41 @@
 [
-    {
-      "test_name": "r1",
-      "varying_parameters": {
-        "server": {},
-        "client": {
-          "request_rate": [
-            14,
-            16
-          ]
-        },
-        "share": {
-          "scheduling_policy": [
-            "fcfs",
-            "ldf_rej_gate1.3_credit"
-          ]
-        }
+  {
+    "test_name": "r1",
+    "varying_parameters": {
+      "server": {},
+      "client": {
+        "request_rate": [
+          14,
+          16
+        ]
       },
-      "fixed_parameters": {
-        "server": {
-          "max_num_batched_tokens": 1024,
-          "load_format": "dummy",
-          "disable_log_stats": "",
-          "disable_log_requests": "",
-          "num_gpu_blocks_override": 20000,
-          "enforce-eager": "",
-          "decode_prediction_model_path": "predictor/analytic_model/config/llama8b-sharegpt-decode.json",
-          "prefill_prediction_model_path": "predictor/analytic_model/config/llama8b-sharegpt-prefill.json"
-        },
-        "client": {
-          "num_prompts": 512,
-          "dataset_path": "datasets/llama8b-sharegpt/test_with_slo.jsonl",
-          "dataset_name": "local",
-          "result_dir": "benchmarks/result/llama8b-sharegpt/exp1_qps_scaling/",
-          "simple_result": ""
-        },
-        "share": {
-          "model": "meta-llama/Llama-3.1-8B"
-        }
+      "share": {
+        "scheduling_policy": [
+          "fcfs"
+        ]
+      }
+    },
+    "fixed_parameters": {
+      "server": {
+        "max_num_batched_tokens": 1024,
+        "load_format": "dummy",
+        "disable_log_stats": "",
+        "disable_log_requests": "",
+        "num_gpu_blocks_override": 20000,
+        "enforce-eager": "",
+        "decode_prediction_model_path": "predictor/analytic_model/config/llama8b-sharegpt-decode.json",
+        "prefill_prediction_model_path": "predictor/analytic_model/config/llama8b-sharegpt-prefill.json"
+      },
+      "client": {
+        "num_prompts": 512,
+        "dataset_path": "datasets/llama8b-sharegpt/test_with_slo.jsonl",
+        "dataset_name": "local",
+        "result_dir": "benchmarks/result/llama8b-sharegpt/exp1_qps_scaling/",
+        "simple_result": ""
+      },
+      "share": {
+        "model": "meta-llama/Llama-3.1-8B"
       }
     }
-  ]
+  }
+]

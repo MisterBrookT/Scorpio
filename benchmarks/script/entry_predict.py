@@ -7,12 +7,20 @@ llama8b_sharegpt_config = {
     "config_path": "MODELS/opt-125m-llama8b-sharegpt-equalwidth-numbucket100-bucketsize82-bs64-e8/usage_config.json",
     "label_group_size": 82
 }
+llama8b_opencoder_config = {
+    "config_path": "MODELS/opt-125m-llama8b-opencoder-class-equalwidth-numbucket100-bucketsize82-b64/usage_config.json",
+    "label_group_size": 82
+}
 
 llama8b_lmsys_config = {
     "config_path": "MODELS/opt-125m-llama8b-lmsys-equalwidth-numbucket100-bucketsize82-bs64-e8/usage_config.json",
     "label_group_size": 82
 }
 
+llama8b_arxiv_config = {
+    "config_path": "MODELS/opt-125m-arxiv-class-equalwidth-numbucket100-bucketsize82-b64/usage_config.json",
+    "label_group_size": 82
+}
 
 gemma27b_sharegpt_config = {
     "config_path": "MODELS/opt-125m-gemma27b-sharegpt-equalwidth-numbucket100-bucketsize82-bs64-e8/usage_config.json",
@@ -30,6 +38,8 @@ def get_config(model: str, dataset: str):
     configs = {
         ('8b', 'sharegpt'): llama8b_sharegpt_config,
         ('8b', 'lmsys'): llama8b_lmsys_config,
+        ('8b', 'opencoder'): llama8b_opencoder_config,
+        ('8b', 'arxiv'): llama8b_arxiv_config,
         ('27b', 'sharegpt'): gemma27b_sharegpt_config,
         ('27b', 'lmsys'): gemma27b_lmsys_config,
     }
@@ -39,7 +49,7 @@ def main():
     parser = argparse.ArgumentParser(description='Run prediction with specified model and dataset')
     parser.add_argument('--model', choices=['8b', '27b'], required=True,
                       help='Model to use for prediction')
-    parser.add_argument('--dataset', choices=['lmsys', 'sharegpt'], required=True,
+    parser.add_argument('--dataset', choices=['lmsys', 'sharegpt', "opencoder", "arxiv"], required=True,
                       help='Dataset to use for prediction')
     
     args = parser.parse_args()

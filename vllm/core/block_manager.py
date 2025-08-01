@@ -114,7 +114,6 @@ class SelfAttnBlockSpaceManager(BlockSpaceManager):
         check_no_caching_or_swa_for_blockmgr_encdec(self, seq_group)
         seq = seq_group.get_seqs(status=SequenceStatus.WAITING)[0]
         
-        # Yinghao: here we need to update how the number of required blocks calculated.
         prefill_num_required_blocks = BlockTable.get_num_required_blocks(
             token_ids=seq.get_token_ids(),
             num_lookahead_slots=num_lookahead_slots,

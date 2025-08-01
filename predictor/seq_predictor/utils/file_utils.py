@@ -23,7 +23,7 @@ import gcsfs
 from attr import attrib, attrs
 from pkg_resources import Requirement, resource_filename
 
-from seq_predictor.utils.logging import get_logger
+from predictor.seq_predictor.utils.logging import get_logger
 
 logger = get_logger()
 

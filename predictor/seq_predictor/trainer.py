@@ -14,6 +14,7 @@ from predictor.seq_predictor.utils.file_utils import create_output_dirs, PathsCo
 import os
 from tqdm import tqdm
 import math
+from predictor.seq_predictor.utils.logging import init_logger
 
 def parse_args():
     parser = ArgumentParser("SeqPredictor")
@@ -93,7 +94,7 @@ class SeqPredictorDataset(Dataset):
             # Sort boundaries just to be safe
             self.bin_boundaries = sorted(self.bin_boundaries)
             
-            print(f"Balanced bin boundaries: {self.bin_boundaries}")
+            logger.info(f"Balanced bin boundaries: {self.bin_boundaries}")
 
     def __len__(self):
         return len(self.data)
@@ -152,15 +153,19 @@ def run():
     os.environ["TOKENIZERS_PARALLELISM"] = "false"
     args = parse_args()
     
+    # Initialize logger for terminal output only
+    logger = init_logger()
+    
     if args.check_exist:
-        print("Checking existing model...")
+        logger.info("Checking existing model...")
         model_path = os.path.join(args.job_dir, args.run_id, "finetuned")
         if os.path.exists(model_path):
-            print(f"Model already exists at {model_path}. Exiting.")
+            logger.info(f"Model already exists at {model_path}. Exiting.")
             return
         else:
-            print(f"Model does not exist at {model_path}. Continuing...")
+            logger.info(f"Model does not exist at {model_path}. Continuing...")
 
+    logger.info("Loading tokenizer...")
     llama3_tokenizer = AutoTokenizer.from_pretrained(args.tokenizer)
     prefill_predictor_model_config = args.config # 'config_prefill_opt.txt'
     config = PrefillPredictorConfig.from_json(prefill_predictor_model_config)
@@ -168,7 +173,7 @@ def run():
 
     if config.model.num_labels == -1:
         config.model.num_labels = math.ceil(args.label_max_length / args.label_group_size)
-    print("num_labels: ", config.model.num_labels)
+    logger.info(f"num_labels: {config.model.num_labels}")
 
 
     with set_default_torch_dtype(torch.float32):
@@ -246,7 +251,7 @@ def run():
                     loss = loss_func(outputs.view(1, -1), class_labels) 
             
             if args.print_loss:
-                print("loss: ", loss ) 
+                logger.info(f"loss: {loss}") 
             loss.backward()
 
             optimizer.step()
@@ -255,7 +260,7 @@ def run():
                         
             total_loss += loss.item()
             idx += 1
-        print(f"Epoch {epoch+1}, Loss: {total_loss / len(train_dataloader)}")
+        logger.info(f"Epoch {epoch+1}, Loss: {total_loss / len(train_dataloader)}")
 
         length_label_list = []
         class_label_list = []
@@ -285,35 +290,35 @@ def run():
                 real_len_list.extend(origin_len.tolist())
     
             tau, score = kendalltau(length_label_list, prediction_list)
-            print(f"Kendall's Tau: {tau}, p-value: {score}")
+            logger.info("Kendall's Tau: %s, p-value: %s", tau, score)
 
             exact_match_acc = (np.array(class_label_list) == np.array(prediction_list)).sum() / len(class_label_list)
-            print("Exact match accuracy: ", exact_match_acc)
+            logger.info("Exact match accuracy: %s", exact_match_acc)
             
             # Off-by-1 accuracy (predictions within 1 bin of the correct label)
             off_by_1_acc = (np.abs(np.array(class_label_list) - np.array(prediction_list)) <= 1).sum() / len(class_label_list)
-            print("Off-by-1 accuracy: ", off_by_1_acc)
+            logger.info("Off-by-1 accuracy: %s", off_by_1_acc)
             
             # Off-by-2 accuracy (predictions within 2 bins of the correct label)
             off_by_2_acc = (np.abs(np.array(class_label_list) - np.array(prediction_list)) <= 2).sum() / len(class_label_list)
-            print("Off-by-2 accuracy: ", off_by_2_acc)
+            logger.info("Off-by-2 accuracy: %s", off_by_2_acc)
             
 
             # Bin MSE (mean squared error between predicted and actual label bins)
             bin_mse = np.mean((np.array(class_label_list) - np.array(prediction_list))**2)
-            print("Bin MSE: ", bin_mse)
+            logger.info("Bin MSE: %s", bin_mse)
             
             # Length MSE (mean squared error between predicted and actual sequence lengths)
             length_mse = np.mean((np.array(real_len_list) - np.array(prediction_len_list))**2)
-            print("Length MSE: ", length_mse)   
+            logger.info("Length MSE: %s", length_mse)   
 
             # Root Mean Squared Error (RMSE) between predicted and actual sequence lengths
             length_rmse = math.sqrt(length_mse)
-            print("Length RMSE: ", length_rmse)
+            logger.info("Length RMSE: %s", length_rmse)
 
             # Check if current off-by-2 accuracy is better than the best seen so far
             if length_rmse < best_length_rmse:
-                print(f"New best length RMSE: {length_rmse:.4f} (improved from {best_length_rmse:.4f})")
+                logger.info("New best length RMSE: %.4f (improved from %.4f)", length_rmse, best_length_rmse)
                 best_length_rmse = length_rmse
                 # Save the current model state
                 best_model_state = {
@@ -330,18 +335,24 @@ def run():
                     }
                 }
             else:
-                print(f"Length RMSE did not improve. Current: {length_rmse:.4f}, Best: {best_length_rmse:.4f}")
+                logger.info("Length RMSE did not improve. Current: %.4f, Best: %.4f", length_rmse, best_length_rmse)
                 
 
 
-    # eval
+    # test evaluation
     predictor.model.eval()
     length_label_list = []
     class_label_list = []
     prediction_list = []
     prediction_len_list = []
     real_len_list = []
-    print("Starting evaluation...")
+    logger.info("Starting evaluation...")
+    
+    # If we have a best model from validation, load it for test evaluation
+    if best_model_state is not None:
+        logger.info("Loading best validation model for test evaluation (from epoch %d)", best_model_state['test_metrics']['epoch'] + 1)
+        predictor.model.load_state_dict(best_model_state['model_state_dict'])
+    
     with torch.no_grad():
         for prompt, _, origin_len, class_labels, length_labels in tqdm(test_dataloader):
             prompt = list(prompt)
@@ -368,31 +379,31 @@ def run():
             real_len_list.extend(origin_len.tolist())
 
     tau, score = kendalltau(length_label_list, prediction_list)
-    print(f"Kendall's Tau: {tau}, p-value: {score}")
+    logger.info("Kendall's Tau: %s, p-value: %s", tau, score)
     
     # exact acc
     exact_match_acc = (np.array(class_label_list) == np.array(prediction_list)).sum() / len(class_label_list)
-    print("Exact match accuracy: ", exact_match_acc)
+    logger.info("Exact match accuracy: %s", exact_match_acc)
     
     # Off-by-1 accuracy
     off_by_1_acc = (np.abs(np.array(class_label_list) - np.array(prediction_list)) <= 1).sum() / len(class_label_list)
-    print("Off-by-1 accuracy: ", off_by_1_acc)
+    logger.info("Off-by-1 accuracy: %s", off_by_1_acc)
     
     # Off-by-2 accuracy
     off_by_2_acc = (np.abs(np.array(class_label_list) - np.array(prediction_list)) <= 2).sum() / len(class_label_list)
-    print("Off-by-2 accuracy: ", off_by_2_acc)
+    logger.info("Off-by-2 accuracy: %s", off_by_2_acc)
 
     # Bin MSE
     bin_mse = np.mean((np.array(class_label_list) - np.array(prediction_list))**2)
-    print("Bin MSE: ", bin_mse)
+    logger.info("Bin MSE: %s", bin_mse)
     
     # Length MSE
     length_mse = np.mean((np.array(real_len_list) - np.array(prediction_len_list))**2)
-    print("Length MSE: ", length_mse)
+    logger.info("Length MSE: %s", length_mse)
 
     # Root Mean Squared Error (RMSE) between predicted and actual sequence lengths
     length_rmse = math.sqrt(length_mse)
-    print("Length RMSE: ", length_rmse)
+    logger.info("Length RMSE: %s", length_rmse)
             
     best_model_state['evaluate_metrics'] = {
         'tau': tau,
@@ -418,17 +429,17 @@ def run():
 
     predictor.model.config.__dict__['num_labels'] = config.model.num_labels
 
-    # If we found a better model based on off-by-2 accuracy, load that model state before saving
+    # If we found a better model based on validation performance, save it
     if best_model_state is not None:
-        print(f"Saving the best model with from epoch {best_model_state['test_metrics']['epoch'] + 1}")
-        predictor.model.load_state_dict(best_model_state['model_state_dict'])
+        logger.info("Saving the best validation model from epoch %d", best_model_state['test_metrics']['epoch'] + 1)
+        # Model is already loaded with best state from test evaluation
         
         # Save best metrics information alongside the model
         best_metrics_path = os.path.join(paths.output_dir, "best_metrics.json")
         with open(best_metrics_path, 'w') as f:
             json.dump({"evaluate_metrics": best_model_state['evaluate_metrics'], "test_metrics": best_model_state['test_metrics']}, f, indent=4)
     else:
-        print("Warning: No model performed better than the initialization. Saving the final model anyway.")
+        logger.warning("No model performed better than the initialization. Saving the final model anyway.")
 
     predictor.model = predictor.model.half()
     predictor.model.save_pretrained(finetuned_model_output_path)
