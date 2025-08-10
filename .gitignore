@@ -77,7 +77,6 @@ benchmarks/result/*/
 # Exclude all files in benchmarks/config subfolders but keep minitest.json
 benchmarks/config/*/
 !benchmarks/config/minitest.json
-draw/
 predictor/analytic_model/config/
 
 
