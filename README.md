@@ -8,6 +8,15 @@
 SLO-Oriented LLM Serving for Heterogeneous Workloads
 </h3>
 
+<p align="center">
+  <a href="https://arxiv.org/abs/2505.23022">
+    <img src="https://img.shields.io/badge/Paper-arXiv%3A2505.23022-blue?style=for-the-badge&logo=arxiv" alt="Paper">
+  </a>
+  <a href="https://docs.google.com/presentation/d/1gVbQ8IWpcsoGSC_KV0hiPk_EgpSejz7Uak3p8r_nnV0/edit?slide=id.g3780206212d_0_8#slide=id.g3780206212d_0_8">
+    <img src="https://img.shields.io/badge/Slides-PDF-orange?style=for-the-badge&logo=adobe-acrobat-reader" alt="Slides">
+  </a>
+</p>
+
 ---
 
 ## 🔥 What's SCORPIO?
@@ -26,8 +35,6 @@ SCORPIO is a system-algorithm co-designed LLM serving engine that **prioritizes 
 - 🚀 **Built on vLLM**: Extends vLLM with SLO-oriented scheduling logic.
 - 📊 **Up to 14.4× Goodput** and **46.5% SLO Improvement** vs state-of-the-art.
 
----
-
 ## 🛠️ Installation
 
 Create the environment and install the SCORPIO engine:
@@ -41,8 +48,6 @@ export VLLM_PRECOMPILED_WHEEL_LOCATION=https://wheels.vllm.ai/${VLLM_COMMIT}/vll
 
 pip install --editable .
 ```
-
----
 
 ## 📥 Download Datasets and Models
 
@@ -59,8 +64,6 @@ huggingface-cli download --repo-type dataset --resume-download Brookseeworld/Scr
 mkdir MODELS && cd MODELS
 huggingface-cli download --resume-download Brookseeworld/Scropio-seq-len-predictor --local-dir .
 ```
-
----
 
 ## ⚙️ Quickstart
 
@@ -80,19 +83,7 @@ conda activate scorpio
 python benchmarks/script/entry_serving.py --config benchmarks/config/llama8b-sharegpt/minitest.json
 ```
 
----
 
-## 📈 Performance
-
-SCORPIO achieves:
-
-- **14.4× higher goodput**
-- **46.5% better SLO adherence**
-- Near-zero runtime overhead (<0.2%)
-
-See full benchmark results in the [paper](https://arxiv.org/pdf/2505.23022).
-
----
 
 ## 🧠 Citation
 
@@ -107,8 +98,3 @@ If you use SCORPIO, please cite us:
 }
 ```
 
----
-
-## 🤝 Acknowledgments
-
-SCORPIO builds on [vLLM](https://github.com/vllm-project/vllm). We thank the open-source community for their amazing contributions.
