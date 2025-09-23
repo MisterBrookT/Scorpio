@@ -611,7 +611,7 @@ setup(
     name="scorpio",
     version=get_vllm_version(),
     author="Anonymous Authors",
-    license="Apache 2.0",
+    license="Apache 2.0", 
     description=("SCORPIO: SLO-Oriented LLM Serving for Heterogeneous Workloads"),
     long_description=read_readme(),
     long_description_content_type="text/markdown",
