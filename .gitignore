@@ -87,3 +87,4 @@ predictor/analytic_model/config/
 *.jsonl
 *.csv
 *.json
+*.tex

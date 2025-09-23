@@ -608,18 +608,17 @@ else:
     }
 
 setup(
-    name="vllm",
+    name="scorpio",
     version=get_vllm_version(),
-    author="vLLM Team",
+    author="Anonymous Authors",
     license="Apache 2.0",
-    description=("A high-throughput and memory-efficient inference and "
-                 "serving engine for LLMs"),
+    description=("SCORPIO: SLO-Oriented LLM Serving for Heterogeneous Workloads"),
     long_description=read_readme(),
     long_description_content_type="text/markdown",
-    url="https://github.com/vllm-project/vllm",
+    url="https://anonymous-submission.github.io/scorpio",
     project_urls={
-        "Homepage": "https://github.com/vllm-project/vllm",
-        "Documentation": "https://vllm.readthedocs.io/en/latest/",
+        "Homepage": "https://anonymous-submission.github.io/scorpio",
+        "Documentation": "https://anonymous-submission.github.io/scorpio/docs",
     },
     classifiers=[
         "Programming Language :: Python :: 3.9",

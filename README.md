@@ -8,15 +8,6 @@
 SLO-Oriented LLM Serving for Heterogeneous Workloads
 </h3>
 
-<p align="center">
-  <a href="https://arxiv.org/abs/2505.23022">
-    <img src="https://img.shields.io/badge/Paper-arXiv%3A2505.23022-blue?style=for-the-badge&logo=arxiv" alt="Paper">
-  </a>
-  <a href="https://docs.google.com/presentation/d/1gVbQ8IWpcsoGSC_KV0hiPk_EgpSejz7Uak3p8r_nnV0/edit?slide=id.g3780206212d_0_8#slide=id.g3780206212d_0_8">
-    <img src="https://img.shields.io/badge/Slides-PDF-orange?style=for-the-badge&logo=adobe-acrobat-reader" alt="Slides">
-  </a>
-</p>
-
 ---
 
 ## 🔥 What's SCORPIO?
@@ -55,14 +46,18 @@ pip install --editable .
 
 ```bash
 mkdir datasets && cd datasets
-huggingface-cli download --repo-type dataset --resume-download Brookseeworld/Scropio-dataset --local-dir .
+# Dataset will be made available upon paper acceptance
+# For now, please contact the anonymous submission for access
+echo "Dataset access instructions will be provided upon paper acceptance"
 ```
 
 ### Models
 
 ```bash
 mkdir MODELS && cd MODELS
-huggingface-cli download --resume-download Brookseeworld/Scropio-seq-len-predictor --local-dir .
+# Pre-trained models will be made available upon paper acceptance
+# For now, please contact the anonymous submission for access  
+echo "Model access instructions will be provided upon paper acceptance"
 ```
 
 ## ⚙️ Quickstart
@@ -83,18 +78,23 @@ conda activate scorpio
 python benchmarks/script/entry_serving.py --config benchmarks/config/llama8b-sharegpt/minitest.json
 ```
 
-
-
 ## 🧠 Citation
 
-If you use SCORPIO, please cite us:
+If you use SCORPIO, please cite our paper:
 
 ```bibtex
-@article{tang2025scorpio,
+@inproceedings{anonymous2026scorpio,
   title={SCORPIO: Serving the Right Requests at the Right Time for Heterogeneous SLOs in LLM Inference},
-  author={Tang, Yinghao and Lan, Tingfeng and Huang, Xiuqi and Lu, Hui and Chen, Wei},
-  journal={arXiv preprint arXiv:2505.23022},
-  year={2025}
+  author={Anonymous Authors},
+  booktitle={Under Review for ICLR 2026},
+  year={2026}
 }
 ```
 
+**Note:** Full citation details will be provided upon paper acceptance.
+
+---
+
+## 📄 Paper Under Review
+
+This work is currently under review for **ICLR 2026**. All identifying information has been removed to maintain anonymity during the review process.

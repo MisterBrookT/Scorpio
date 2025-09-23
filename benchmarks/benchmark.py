@@ -33,8 +33,8 @@ import random
 import time
 import warnings
 from dataclasses import dataclass
-from datetime import datetime
-from typing import Any, AsyncGenerator, Collection, Dict, List, Optional, Tuple, TypedDict
+from datetime import datetime, timedelta
+from typing import Any, AsyncGenerator, Collection, Dict, List, Optional, Tuple, TypedDict, Union
 
 import numpy as np
 from backend_request_func import (ASYNC_REQUEST_FUNCS, RequestFuncInput, RequestFuncOutput, SchedulingMetric, get_scheduling_metric)
@@ -99,7 +99,8 @@ class BenchmarkMetrics:
     std_e2el_ms: float
     percentiles_e2el_ms: List[Tuple[float, float]]
     tpots: List
-    
+    max_waiting_time: float
+    max_waiting_ratio: float
     trace_slo_adherence: List[Tuple[datetime, bool]]
 
 
@@ -109,6 +110,7 @@ def sample_from_local(
     num_requests: int,
     tokenizer: PreTrainedTokenizerBase,
     fixed_output_len: Optional[int] = None,
+    long_sequence: bool = False,
 ) -> List[RequestData]:
     # Set fixed seed for reproducibility
     random.seed(42)
@@ -149,7 +151,7 @@ def sample_from_local(
                 generated_text = data['generated']
                 output_len = len(tokenizer(generated_text).input_ids)
 
-            if fixed_output_len is  None:
+            if fixed_output_len is  None and not long_sequence:
                 if prompt_len < 4 or  output_len < 4:
                     # Prune too short sequences.
                     continue
@@ -193,75 +195,6 @@ def sample_from_local(
     print(f"len(filtered_dataset): {len(filtered_dataset)}")
     return filtered_dataset
 
-
-def sample_from_sharegpt_lmsys(
-    dataset_path: str,
-    num_requests: int,
-    tokenizer: PreTrainedTokenizerBase,
-    fixed_output_len: Optional[int],
-    start: int = 0,
-) -> List[Tuple[str, int, int]]:
-    if fixed_output_len is not None and fixed_output_len < 4:
-        raise ValueError("output_len too small")
-
-    if dataset_path == "sharegpt":
-        with open("datasets/ShareGPT_V3_unfiltered_cleaned_split.json") as f:
-            dataset = json.load(f)
-        dataset = [data for data in dataset if len(data["conversations"]) >= 2]
-        dataset = dataset[start:start + int(num_requests * 1.2)] 
-        ds = dataset
-        # Only keep the first two turns of each conversation.
-        dataset = [(data["conversations"][0]["value"],
-                data["conversations"][1]["value"]) for data in dataset]
-        prompts = []
-        for prompt, _ in dataset:
-            # Format for Gemma with correct turn markers
-            chat = [
-                {"role": "user", "content": prompt}
-            ]
-            formatted_prompt = tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt=True)
-            prompts.append(formatted_prompt)
-    elif dataset_path == "lmsys":
-        dataset = datasets.load_dataset("lmsys/lmsys-chat-1m")['train']
-        ds = dataset.select(range(start, start + int(num_requests * 1.2)))
-        prompts = []
-        for i, question in enumerate(ds):
-            prompt = None
-            for convsat in question['conversation']:
-                if convsat['role'] == 'user':
-                    prompt = convsat['content']
-                    break
-            if prompt is None:
-                continue
-            # Format for Gemma with correct turn markers
-            chat = [
-                {"role": "user", "content": prompt}
-            ]
-            formatted_prompt = tokenizer.apply_chat_template(chat, tokenize=False, add_generation_prompt=True)
-            prompts.append(formatted_prompt)
-
-    prompt_token_ids = tokenizer(prompts).input_ids
-    tokenized_dataset = []
-    for i in range(len(prompts)):
-        output_len = fixed_output_len
-        tokenized_dataset.append((prompts[i], prompt_token_ids[i], output_len))
-
-    filtered_dataset: List[str] = []
-    for prompt, prompt_token_ids, output_len in tokenized_dataset:
-        prompt_len = len(prompt_token_ids)
-        if prompt_len < 4 or output_len < 4:
-            # Prune too short sequences.
-            continue
-        if prompt_len > 1024 or prompt_len + output_len > 2000000: #only filter too long prompt
-            # Prune too long sequences.
-            continue
-        filtered_dataset.append(RequestData(prompt=prompt, prompt_len=prompt_len, output_len=output_len-prompt_len, ttft=100000, tpot=100000, generation_mode=True))
-
-    # Sample the requests.
-    sampled_requests = random.sample(filtered_dataset, num_requests)
-
-    return sampled_requests
-
 def sample_random_requests(
     input_len: int,
     output_len: int,
@@ -281,6 +214,124 @@ def sample_random_requests(
                                timestamp=None))
     return input_requests
 
+
+def sample_for_profile(
+    profile_config_path: str,
+    tokenizer: PreTrainedTokenizerBase,
+) -> List[RequestData]:
+    """
+    Generate requests based on profile configuration, in the order:
+    short_short, short_long, long_short, mixed_workload.
+    For each pattern, for each qps, generate 256 requests with timestamps.
+    For mixed_workload, sample pattern for each request according to pattern_mix.
+    """
+    with open(profile_config_path, 'r') as f:
+        profile_config = json.load(f)
+    request_patterns = profile_config["profiling_config"]["request_patterns"]
+    request_per_qps = profile_config["profiling_config"].get("request_per_qps", 256)
+    all_requests = []
+    current_time = datetime.now()
+    
+    for pattern_name in request_patterns.keys():
+        if pattern_name != "mixed_workload":
+            pattern = request_patterns[pattern_name]
+            qps_levels = pattern["qps_levels"]
+            prompt_range = pattern["prompt_range"]
+            output_range = pattern["output_range"]
+            for qps in qps_levels:
+                # Calculate scale parameter theta to maintain the desired qps
+                theta = 1.0 / qps
+                for i in range(request_per_qps):
+                    # Sample the request interval from the gamma distribution
+                    interval = np.random.gamma(shape=1.0, scale=theta)
+                    # Calculate timestamp for this request
+                    timestamp = current_time + timedelta(seconds=interval)
+                    current_time = timestamp  # Update current_time for next request
+                    
+                    prompt_len = random.randint(prompt_range[0], prompt_range[1])
+                    output_len = random.randint(output_range[0], output_range[1])
+                    prompt = tokenizer.decode([random.randint(0, tokenizer.vocab_size - 1) for _ in range(prompt_len)])
+                    req = RequestData(
+                        prompt=prompt,
+                        prompt_len=prompt_len,
+                        output_len=output_len,
+                        ttft=9999,
+                        tpot=9999,
+                        timestamp=timestamp
+                    )
+                    all_requests.append(req)
+        else:
+            # mixed_workload
+            mix = request_patterns["mixed_workload"]
+            pattern_mix = mix["pattern_mix"]
+            total_qps_levels = mix["total_qps_levels"]
+            # Prepare weights and pattern list
+            pattern_names = list(pattern_mix.keys())
+            weights = [pattern_mix[k] for k in pattern_names]
+            for qps in total_qps_levels:
+                # Calculate scale parameter theta to maintain the desired qps
+                theta = 1.0 / qps
+                for i in range(request_per_qps):
+                    # Sample the request interval from the gamma distribution
+                    interval = np.random.gamma(shape=1.0, scale=theta)
+                    # Calculate timestamp for this request
+                    timestamp = current_time + timedelta(seconds=interval)
+                    current_time = timestamp  # Update current_time for next request
+                    
+                    # Choose a pattern according to weights
+                    chosen_pattern = random.choices(pattern_names, weights=weights, k=1)[0]
+                    base = request_patterns[chosen_pattern]
+                    prompt_range = base["prompt_range"]
+                    output_range = base["output_range"]
+                    prompt_len = random.randint(prompt_range[0], prompt_range[1])
+                    output_len = random.randint(output_range[0], output_range[1])
+                    prompt = tokenizer.decode([random.randint(0, tokenizer.vocab_size - 1) for _ in range(prompt_len)])
+                    req = RequestData(
+                        prompt=prompt,
+                        prompt_len=prompt_len,
+                        output_len=output_len,
+                        ttft=9999,
+                        tpot=9999,
+                        timestamp=timestamp
+                    )
+                    all_requests.append(req)
+    
+    # Save dataset to the specified path
+    dataset_saved_path = profile_config["profiling_config"].get("dataset_saved_path")
+    if dataset_saved_path:
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(dataset_saved_path), exist_ok=True)
+        
+        with open(dataset_saved_path, 'w', encoding='utf-8') as f:
+            for req in all_requests:
+                # Convert timestamp to ISO format string
+                timestamp_str = req["timestamp"].isoformat() if req["timestamp"] else None
+                
+                # Create the JSONL entry
+                fake_output = tokenizer.decode([random.randint(0, tokenizer.vocab_size - 1) for _ in range(req["output_len"])])
+                entry = {
+                    "prompt": req["prompt"],
+                    "generated": fake_output,  # Empty for now, will be filled during generation
+                    "timestamp": timestamp_str,
+                    "ttft": req["ttft"],
+                    "tpot": req["tpot"]
+                }
+                f.write(json.dumps(entry, ensure_ascii=False) + '\n')
+        
+        print(f"Dataset saved to: {dataset_saved_path}")
+    
+    return all_requests
+
+
+def parse_request_rate(value):
+    """Parse request rate argument, handling 'timestamp' string."""
+    if isinstance(value, str) and value.lower() == 'timestamp':
+        return 'timestamp'  # Keep semantic meaning
+    try:
+        return float(value)
+    except ValueError:
+        raise ValueError(f"Invalid request rate: {value}. Must be a number or 'timestamp'")
+
 def parse_list_arg(arg_value):
     """Parse a string representation of a list into a Python list."""
     if isinstance(arg_value, str):
@@ -299,7 +350,7 @@ def parse_list_arg(arg_value):
 
 async def get_request(
     input_requests: List[RequestData],
-    request_rate: float,
+    request_rate: Union[float, str],
     burstiness: float = 1.0,
 ) -> AsyncGenerator[RequestData, None]:
     """
@@ -324,7 +375,8 @@ async def get_request(
     
     # Check if timestamps are included in the requests
     has_timestamps = input_requests[0].get("timestamp") is not None
-    print(has_timestamps)
+    assert (request_rate == "timestamp" and has_timestamps) or (request_rate != "timestamp" and not has_timestamps), "either 'timestamp' or 'qps' must be specified."
+
     if has_timestamps:
         print("Using timestamps from dataset for request timing")
         # Sort requests by timestamp
@@ -394,12 +446,18 @@ def calculate_metrics(
     ttfts: List[float] = []
     e2els: List[float] = []
     tops: List[float] = []
+    max_waiting_time = 0
+    max_waiting_ratio = 0
     # here true means the request is a good completion
     trace_slo_adherence: List[Tuple[datetime, bool]] = []
     for i in range(len(outputs)):
         ttft_objective = input_requests[i]["ttft"]/MILLISECONDS_TO_SECONDS_CONVERSION
         tpot_objective = input_requests[i]["tpot"]/MILLISECONDS_TO_SECONDS_CONVERSION
         if outputs[i].success:
+            if outputs[i].ttft / ttft_objective > max_waiting_ratio:
+                max_waiting_ratio = outputs[i].ttft / ttft_objective
+            if outputs[i].ttft > max_waiting_time:
+                max_waiting_time = outputs[i].ttft
             # We use the tokenizer to count the number of output tokens for all
             # serving backends instead of looking at len(outputs[i].itl) since
             # multiple output tokens may be bundled together
@@ -493,7 +551,9 @@ def calculate_metrics(
                              for p in selected_percentiles],
         tpots= tpots,
         mean_top= np.mean(tops or 0) * 1000,
-        trace_slo_adherence=trace_slo_adherence
+        trace_slo_adherence=trace_slo_adherence,
+        max_waiting_time=max_waiting_time,
+        max_waiting_ratio=max_waiting_ratio
     )
 
 
@@ -549,7 +609,6 @@ async def benchmark(
         best_of=best_of,
         ignore_eos=ignore_eos,
     )
-    # print(test_input)
     test_output = await request_func(request_func_input=test_input)
     if not test_output.success and not test_output.reject:
         raise ValueError(
@@ -695,6 +754,8 @@ async def benchmark(
         "request_throughput": metrics.request_throughput,
         "request_goodput": metrics.request_goodput,
         "mean_top": metrics.mean_top,
+        "max_waiting_time": metrics.max_waiting_time,
+        "max_waiting_ratio": metrics.max_waiting_ratio
     }
 
     if not args.simple_result:
@@ -831,6 +892,7 @@ def main(args: argparse.Namespace):
             num_requests=args.num_prompts,
             tokenizer= tokenizer,
             fixed_output_len=args.fixed_output_len,
+            long_sequence=args.long_sequence,
         )
     elif args.dataset_name == "random":
         input_requests = sample_random_requests(
@@ -845,6 +907,11 @@ def main(args: argparse.Namespace):
             num_requests=args.num_prompts,
             tokenizer=tokenizer,
             fixed_output_len=args.output_len,
+        )
+    elif args.dataset_name == "profile":
+        input_requests = sample_for_profile(
+            profile_config_path=args.dataset_path,
+            tokenizer=tokenizer,
         )
     else:
         raise ValueError(f"Unknown dataset: {args.dataset_name}")
@@ -917,19 +984,18 @@ def main(args: argparse.Namespace):
             file_name = args.result_filename
         if args.result_dir:
             file_name = os.path.join(args.result_dir, file_name)
-            
-        if args.result_dir and not os.path.exists(args.result_dir):
-            os.makedirs(args.result_dir)
+            if not os.path.exists(args.result_dir):
+                os.makedirs(args.result_dir, exist_ok=True)
 
-        with open(file_name, "w", encoding='utf-8') as outfile:
-            try:
-                # Convert datetime objects to strings before saving
-                result_json = datetime_to_str(result_json)
-                json.dump(result_json, outfile)
-                print(f"save file successfully to {file_name}")
-            except Exception as e:
-                print(f"Error saving file: {str(e)}")
-                print(f"Error type: {type(e).__name__}")
+            with open(file_name, "w", encoding='utf-8') as outfile:
+                try:
+                    # Convert datetime objects to strings before saving
+                    result_json = datetime_to_str(result_json)
+                    json.dump(result_json, outfile)
+                    print(f"save file successfully to {file_name}")
+                except Exception as e:
+                    print(f"Error saving file: {str(e)}")
+                    print(f"Error type: {type(e).__name__}")
 
 
 
@@ -962,7 +1028,7 @@ if __name__ == "__main__":
         "--dataset-name",
         type=str,
         default="random",
-        choices=["local", "random", "generation"],
+        choices=["local", "random", "generation", "profile"],
         help="Name of the dataset to benchmark on.",
     )
     dataset_group.add_argument(
@@ -981,8 +1047,8 @@ if __name__ == "__main__":
     dataset_group.add_argument("--dataset-path",
                         type=str,
                         default=None,
-                        help="Path to the sharegpt/sonnet dataset. "
-                        "Or the huggingface dataset ID if using HF dataset.")
+                        help="Path to the your dataset (in jsonl.) "
+                        "or the profile configuration JSON file if using profile dataset.")
     
     parser.add_argument(
         "--max-concurrency",
@@ -1024,7 +1090,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--num-prompts",
         type=int,
-        default=1000,
+        default=10000,
         help="Number of prompts to process.",
     )
     parser.add_argument(
@@ -1039,10 +1105,10 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--request-rate",
-        type=float,
+        type=parse_request_rate,
         default=float("inf"),
-        help="Number of requests per second. If this is inf, "
-        "then all the requests are sent at time 0. "
+        help="Number of requests per second. Use 'timestamp' for timestamp-based timing. "
+        "If this is inf, then all the requests are sent at time 0. "
         "Otherwise, we use Poisson process or gamma distribution "
         "to synthesize the request arrival times.",
     )
@@ -1144,6 +1210,11 @@ if __name__ == "__main__":
         type=int,
         default=None,
         help="Output length for each request. Overrides the output length from the local dataset.",
+    )
+    local_group.add_argument(
+        "--long-sequence",
+        action="store_true",
+        help="Allow long sequence. This is only used in local dataset.",
     )
 
     parser.add_argument(

@@ -1197,7 +1197,7 @@ class Scheduler:
         seq_group: SequenceGroup,
         sum_input_len: int,
         num_running_seqs: int,
-        conservative_factor: float = 0.99
+        conservative_factor: float = 0.95
     ) -> AllocStatus:
         # check if the candidates seq can meet the TPOT constraint
 
