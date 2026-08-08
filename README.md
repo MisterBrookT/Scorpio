@@ -9,6 +9,9 @@ SLO-Oriented LLM Serving for Heterogeneous Workloads
 </h3>
 
 <p align="center">
+  <a href="https://conferences.sigappfr.org/wise2026/">
+    <img src="https://img.shields.io/badge/Accepted-WISE%202026-brightgreen?style=for-the-badge" alt="Accepted at WISE 2026">
+  </a>
   <a href="https://arxiv.org/abs/2505.23022">
     <img src="https://img.shields.io/badge/Paper-arXiv%3A2505.23022-blue?style=for-the-badge&logo=arxiv" alt="Paper">
   </a>
@@ -97,4 +100,3 @@ If you use SCORPIO, please cite us:
   year={2025}
 }
 ```
-
